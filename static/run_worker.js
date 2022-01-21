@@ -2162,15 +2162,10 @@ function x() {
 }
 
 onmessage = function(e) {
-    if(e.data[0] == 'pause') {
-        clearInterval(id1);
-        return;
-    }
-    
-    max += e.data[0]
+    //max += e.data[0]
     seed = e.data[2]
     crafts = e.data[3]
-    id1 = setInterval(x, 0.5)
+    x();
 
     /*if (tries >= tries_limit || done(crafts, 4)) {
         if (done(crafts, 4)) {
