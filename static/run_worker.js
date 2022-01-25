@@ -2160,7 +2160,8 @@ function x() {
 }
 
 onmessage = function(e) {
-    seed = e.data[2]
-    crafts = e.data[3]
-    x();
+    // seed = e.data[2]
+    // crafts = e.data[3]
+    // x();
+    postMessage([get_result(e.data[0], e.data[1]), e.data[0]]);
 }

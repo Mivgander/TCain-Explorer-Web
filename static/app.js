@@ -16,6 +16,13 @@ $("#search").on("keyup", function() {
 $("#send").on('click', send).hide();
 $("#pause").on('click', pauseWorker);
 $('#resume').on('click', resumeWorker).hide();
+$('#info').on('click', showInfo);
+
+function showInfo() {
+    console.log(app.worker_running);
+    console.log(app.current_recipe);
+    console.log('this.current_recipe < 5000 = ' + app.current_recipe < 5000)
+}
 
 /**
  * Pause searching

@@ -19,6 +19,7 @@
         <div>
             <button id="pause">Pause</button>
             <button id="resume">Resume</button>
+            <button id="info">Info</button>
         </div>
         <div id="morebutton"></div>
         <div id="send">
@@ -41,5 +42,6 @@
         </div>
     </div>
 </body>
+<script src="{{url_for('static', filename='run_worker.js')}}"></script>
 <script type="module" src="{{url_for('static', filename='app.js')}}"></script>
 </html>
