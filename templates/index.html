@@ -6,12 +6,6 @@
     <link href="https://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext" rel="stylesheet" type="text/css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-    <script>
-        function refreshPage()
-        {
-            window.location.reload(true);
-        }
-    </script>
     <title>Tainted Cain Explorer</title>
 </head>
 <body>
@@ -42,6 +36,5 @@
         </div>
     </div>
 </body>
-<script src="{{url_for('static', filename='run_worker.js')}}"></script>
 <script type="module" src="{{url_for('static', filename='app.js')}}"></script>
 </html>

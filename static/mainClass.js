@@ -52,7 +52,7 @@ export class App
             this.#hardcodeCrafts();
             this.#deleteNotExistingRecipes();
             this.#setPossibleOptions();
-            this.nowySposob();
+            this.newSearching();
             //this.startWorker();
         });
     }
@@ -152,23 +152,27 @@ export class App
     {
         this.stats.innerHTML = "Checked " + this.alltries + " recipes<br>Found " + this.found_recipes + " correct recipes";
     }
-<<<<<<< Updated upstream
-}
-=======
 
-    nowySposob() {
+    newSearching() {
+        let started = false;
         this.all_recipes = CombinationRepetition(this.possible_options, this.possible_options.length, 8);
-        console.log('szukanie...');
         this.worker.onmessage = event => {
             this.alltries += 1;
-            this.crafts[event.data[0]].push(event.data[1]);
+            if(!this.crafts[event.data[0]].includes(event.data[1]) && this.crafts[event.data[0]].length < 30) {
+                this.crafts[event.data[0]].push(event.data[1]);
+                this.found_recipes++;
+                if(this.found_recipes >= 5000 && !started) {
+                    $('#send').show();
+                    started = true;
+                }
+            }
             this.#updateCounter();
             this.current_recipe++;
             if(this.current_recipe < this.all_recipes.length && this.worker_running == true) {
                 this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
             }
-            else if(this.current_recipe +1 == this.all_recipes.length) {
-                console.log('Wszystko znalezione!');
+            else if(this.current_recipe == this.all_recipes.length) {
+                console.log('All found!');
             }
             else {
                 console.log('STOP!');
@@ -177,4 +181,3 @@ export class App
         this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
     }
 }
->>>>>>> Stashed changes
