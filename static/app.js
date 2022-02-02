@@ -7,12 +7,10 @@ import { showModalError, showModalSuccess, swap, removeEveryNotFirstChildOfEleme
 var app = new App();
 
 // When page is loaded show all items
-window.onload = flush_ui(true);
+window.onload = generateAllItems;
 
 // Adding some events to things
-$("#search").on("keyup", function() {
-    flush_ui();
-});
+$("#search").on("keyup", flush_ui);
 $("#send").on('click', send).hide();
 $("#pause").on('click', pauseWorker);
 $('#resume').on('click', resumeWorker).hide();
@@ -36,48 +34,46 @@ function resumeWorker() {
 }
 
 /**
- * Outputs items that have ID or name that includes value in searchbar
- * 
- * @param {Boolean} showAll if true, shows all items regardles of what is in searchbar
+ * Generates all items on page
  */
- export function flush_ui(showAll = false){
-    let divbox = document.getElementById("output");
-    divbox.innerHTML = '';
-	let srchbar = showAll == true ? '' : document.getElementById('search').value;
-    let swapped = swap(item_id_to_name);
-    let foundItems = [];
-    Object.keys(swapped).forEach(function(item) {
-        if (item.toLocaleLowerCase().includes(srchbar.toLocaleLowerCase()) || swapped[item].toString().toLocaleLowerCase().includes(srchbar.toLocaleLowerCase())) {
-            let itemId = swapped[item];
-            let itemObj = {
-                itemName: item,
-                itemId: itemId
-            };
-            foundItems.push(itemObj);
-        }
-    });
-    
-    Object.keys(foundItems).forEach(function(key) {
+function generateAllItems() {
+    let divbox = document.getElementById('output');
+
+    Object.keys(item_id_to_name).forEach(function(key) {
         let itemDiv = document.createElement('div');
+        itemDiv.id = key;
         itemDiv.className = 'item';
         
         let header = document.createElement('h1');
-        header.id = foundItems[key].itemId;
         header.setAttribute('data-recipeIndex', 0);
-
+    
         let name = document.createElement('span');
-        name.textContent = foundItems[key].itemId.toString()+'. '+foundItems[key].itemName
-
+        name.textContent = key.toString()+'. '+item_id_to_name[key]
+    
         let showButton = document.createElement('button');
         showButton.className = 'clickable';
         showButton.textContent = '(Show recipes)'
         showButton.addEventListener('click', showRecipes);
-
+    
         header.appendChild(name);
         header.appendChild(showButton);
         itemDiv.appendChild(header);
-
+    
         divbox.appendChild(itemDiv);
+    });
+}
+
+/**
+ * Filters items on page by value in searchbar
+ */
+function flush_ui(){
+	let srchbar = document.getElementById('search').value;
+    Object.keys(item_id_to_name).forEach(function(key) {
+        if (item_id_to_name[key].toLocaleLowerCase().includes(srchbar.toLocaleLowerCase()) || key.toString().toLocaleLowerCase().includes(srchbar.toLocaleLowerCase())) {
+            document.getElementById(key).style.display = 'block';
+        } else {
+            document.getElementById(key).style.display = 'none';
+        }
     });
 }
 
@@ -114,7 +110,7 @@ function getRecipes(event, refreshMode) {
     removeEveryNotFirstChildOfElement(event.path[2]);
 
     let header = event.path[1];
-    let itemId = header.id;
+    let itemId = event.path[2].id;
     let oldRecipeIndex = parseInt(header.getAttribute('data-recipeIndex'));
     let numberOfItemsPerPage = 10;
 

@@ -137,7 +137,7 @@ export class App
         let started = false;
         this.worker.onmessage = event => {
             this.alltries += 1;
-            if(!this.crafts[event.data[0]].includes(event.data[1]) && this.crafts[event.data[0]].length < 30) {
+            if(!this.crafts[event.data[0]].includes(event.data[1])) {
                 this.crafts[event.data[0]].push(event.data[1]);
                 this.found_recipes++;
                 if(this.found_recipes >= 5000 && !started && this.button) {

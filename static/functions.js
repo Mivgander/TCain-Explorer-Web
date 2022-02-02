@@ -1,11 +1,8 @@
 // Here are functions that don't need external variables
-import { item_id_to_name } from "./items.js";
 
 /**
  * Generates random string
- * 
  * @param {Number} len length of string
- * @returns {String}
  */
 export function generate_random_string(len) {
     var text = "";
@@ -18,7 +15,6 @@ export function generate_random_string(len) {
 
 /**
  * Shows error modal with custom message that disappears after 3s
- * 
  * @param {String} msg custom message
  */
 export function showModalError(msg) {
@@ -31,7 +27,6 @@ export function showModalError(msg) {
 
 /**
  * Shows success modal with custom message that disappears after 3s
- * 
  * @param {String} msg custom message
  */
 export function showModalSuccess(msg) {
@@ -57,7 +52,6 @@ export function hideModal() {
 
 /**
  * Swaps keys with values in array
- * 
  * @param {Object} json 
  * @returns {Object}
  */
@@ -91,7 +85,7 @@ export function insertInfoAfterElement(msg, element) {
 }
 
 /**
- * Create object with recipes for each item
+ * Returns object with recipes for each item
  * @param {Object} allCrafts all found crafts
  * @param {Number} maxRecipes max number of recipes per item
  */
