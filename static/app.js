@@ -1,7 +1,7 @@
 // okay there ends some nerd stuff and now there's my code (and my), at least at some point
 import { App } from './mainClass.js';
 import { item_id_to_name } from './items.js';
-import { showModalError, showModalSuccess, swap, removeEveryNotFirstChildOfElement, insertInfoAfterElement } from './functions.js';
+import { showModalError, showModalSuccess, swap, removeEveryNotFirstChildOfElement, insertInfoAfterElement, createCrafsToSend } from './functions.js';
 
 // Load some stuff and start searching for recipes
 var app = new App();
@@ -16,13 +16,6 @@ $("#search").on("keyup", function() {
 $("#send").on('click', send).hide();
 $("#pause").on('click', pauseWorker);
 $('#resume').on('click', resumeWorker).hide();
-$('#info').on('click', showInfo);
-
-function showInfo() {
-    console.log(app.worker_running);
-    console.log(app.current_recipe);
-    console.log('this.current_recipe < 5000 = ' + app.current_recipe < 5000)
-}
 
 /**
  * Pause searching
@@ -47,13 +40,10 @@ function resumeWorker() {
  * 
  * @param {Boolean} showAll if true, shows all items regardles of what is in searchbar
  */
-function flush_ui(showAll = false){
-    let divbox = document.getElementById("output")
-    let output = ""
-	let srchbar = document.getElementById('search').value;
-    if(showAll) {
-        srchbar = '';
-    }
+ export function flush_ui(showAll = false){
+    let divbox = document.getElementById("output");
+    divbox.innerHTML = '';
+	let srchbar = showAll == true ? '' : document.getElementById('search').value;
     let swapped = swap(item_id_to_name);
     let foundItems = [];
     Object.keys(swapped).forEach(function(item) {
@@ -62,62 +52,47 @@ function flush_ui(showAll = false){
             let itemObj = {
                 itemName: item,
                 itemId: itemId
-            }
+            };
             foundItems.push(itemObj);
         }
     });
     
     Object.keys(foundItems).forEach(function(key) {
-        output +=
-        '<div class="item">' +
-            '<h1 id="'+foundItems[key].itemId+'" data-recipeIndex="0"><span>'+foundItems[key].itemId+'. '+foundItems[key].itemName+'</span> <span class="clickable">(Show Recipes)</span></h1>' +
-        '</div>';
-    })
+        let itemDiv = document.createElement('div');
+        itemDiv.className = 'item';
+        
+        let header = document.createElement('h1');
+        header.id = foundItems[key].itemId;
+        header.setAttribute('data-recipeIndex', 0);
 
-    divbox.innerHTML = output
+        let name = document.createElement('span');
+        name.textContent = foundItems[key].itemId.toString()+'. '+foundItems[key].itemName
 
-    Object.keys(foundItems).forEach(function(key) {
-        document.getElementById(foundItems[key].itemId.toString()).children[1].addEventListener('click', showRecipes);
-    })
+        let showButton = document.createElement('button');
+        showButton.className = 'clickable';
+        showButton.textContent = '(Show recipes)'
+        showButton.addEventListener('click', showRecipes);
+
+        header.appendChild(name);
+        header.appendChild(showButton);
+        itemDiv.appendChild(header);
+
+        divbox.appendChild(itemDiv);
+    });
 }
 
 /**
  * Sends found recipes to the database
  */
 function send() {
-    let craftsToSend = {};
-    for(let i=1; i<=Object.keys(app.crafts).length; i++) {
-        if(!app.crafts[i]) {
-            continue;
-        }
-        
-        let usedIndexes = [];
-        let maxJ = app.crafts[i].length < 10 ? app.crafts[i].length : 10;
-        for(let j=1; j<=maxJ; j++) {
-            let rand = Math.round(Math.random() * app.crafts[i].length);
-            if(!app.crafts[i][rand]) {
-                continue;
-            }
-            if(usedIndexes.includes(rand)) {
-                j--;
-            } else {
-                if(!craftsToSend[i]) {
-                    craftsToSend[i] = [];
-                }
-                craftsToSend[i].push(app.crafts[i][rand]);
-                usedIndexes.push(rand);
-            }
-        }
-    }
+    let craftsToSend = createCrafsToSend(app.crafts, 10);
 
-    console.log(craftsToSend);
-    return;
     fetch('https://tcain.heyn.live/db', {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({"seed": app.seed, "auth_id": app.auth_id, "arr": JSON.stringify(app.crafts)})
+        body: JSON.stringify({"seed": app.seed, "auth_id": app.auth_id, "arr": JSON.stringify(craftsToSend)})
     })
     .then(function() {
         showModalSuccess("Recipes successfully send to server");
@@ -141,22 +116,11 @@ function getRecipes(event, refreshMode) {
     let header = event.path[1];
     let itemId = header.id;
     let oldRecipeIndex = parseInt(header.getAttribute('data-recipeIndex'));
+    let numberOfItemsPerPage = 10;
 
     if(refreshMode == 'show') {
-        event.target.innerHTML = '(Refresh)';
-        event.target.removeEventListener('click', showRecipes);
-        event.target.addEventListener('click', refreshRecipes);
-        let previous = document.createElement('span');
-        previous.className = 'clickable';
-        previous.addEventListener('click', previousRecipes);
-        previous.innerHTML = '</br><- Previous Page ';
-        event.target.parentNode.insertBefore(previous, event.target.previousSibling);
-
-        let next = document.createElement('span');
-        next.className = 'clickable';
-        next.addEventListener('click', nextRecipes);
-        next.innerHTML = ' Next Page ->';
-        event.target.parentNode.insertBefore(next, event.target.nextSibling);
+        removeEveryNotFirstChildOfElement(header);
+        addNavigateButtons(header);
     }
 
     if(app.unexisting.includes(parseInt(itemId))) {
@@ -166,13 +130,13 @@ function getRecipes(event, refreshMode) {
     } else {
         let newRecipeIndex = oldRecipeIndex;
         if(refreshMode == 'previous') {
-            newRecipeIndex = oldRecipeIndex - 15;
+            newRecipeIndex = oldRecipeIndex - numberOfItemsPerPage;
         } else if(refreshMode == 'next') {
-            newRecipeIndex = oldRecipeIndex + 15;
+            newRecipeIndex = oldRecipeIndex + numberOfItemsPerPage;
         }
         header.setAttribute('data-recipeIndex', newRecipeIndex);
 
-        for (let _=newRecipeIndex+15; _>newRecipeIndex; _--) {
+        for (let _=newRecipeIndex+numberOfItemsPerPage-1; _>=newRecipeIndex; _--) {
             if(app.crafts[itemId][_]) {
                 let div = document.createElement('div');
                 div.classList.add('recipe');
@@ -185,6 +149,18 @@ function getRecipes(event, refreshMode) {
             }
         }
     }
+}
+
+function hideRecipes(event) {
+    removeEveryNotFirstChildOfElement(event.path[2]);
+    removeEveryNotFirstChildOfElement(event.path[1]);
+
+    let header = event.path[1];
+    let show = document.createElement('button');
+    show.className = 'clickable';
+    show.addEventListener('click', showRecipes);
+    show.textContent = '(Show Recipes)';
+    header.appendChild(show);
 }
 
 function showRecipes(event) {
@@ -203,54 +179,38 @@ function previousRecipes(event) {
     getRecipes(event, 'previous');
 }
 
-/*
-function run(tries_limit, no_popup=false) {
-    let tries = 0;
-    let currentPool = []
-    while (true) {
-        currentPool = combs1.next().value
-        if (added.includes(currentPool)) {
-            continue
-        }
-        //console.log(currentPool);
-        let id = get_result(currentPool, str2seed(seed))
-        tries += 1
-        alltries += 1 
-        if (unexisting.includes(id) || crafts[id].length >= 4) {
-            added.push(currentPool)
-            continue
-        }
-        if (!crafts[id].includes(currentPool)) {
-            if (crafts[id].length >= 4) {
-                added.push(currentPool)
-                continue
-            }
-            if (tries_limit != default_tries) {additional +=1}
-            found_recipes += 1
-            crafts[id].push(currentPool)
-        }
-        added.push(currentPool)
-        if (tries >= tries_limit || done(crafts, 4)) {
-            if (done(crafts, 4)) {
-                window.alert("Done!")
-            }
-            else if (tries_limit != default_tries) {
-                //if (no_popup){window.alert("Found " + additional + " additional combinations")}
-                additional = 0;
-            }
-            else if (tries >= tries_limit) {
-                let x = document.getElementById("morebutton")
-                x.innerHTML = "<button onclick=\"run(10000)\">Check more recipes</button>"
-            }
-            //console.log(crafts)
-            setInterval(constant_run, 5);
-            first_time = true;
-            flush_ui(false)
-            break
-        }
-    }
+/**
+ * adds navigate buttons to element
+ * @param {HTMLElement} element parent element
+ */
+function addNavigateButtons(element) {
+    let close = document.createElement('button');
+    close.className = 'clickable';
+    close.addEventListener('click', hideRecipes);
+    close.innerHTML = '(Close)';
+    element.appendChild(close);
+
+    element.appendChild(document.createElement('br'));
+
+    let previous = document.createElement('button');
+    previous.className = 'clickable';
+    previous.addEventListener('click', previousRecipes);
+    previous.innerHTML = '<- Previous Page';
+    element.appendChild(previous);
+
+    let refresh = document.createElement('button');
+    refresh.className = 'clickable';
+    refresh.addEventListener('click', refreshRecipes);
+    refresh.innerHTML = '(Refresh)';
+    element.appendChild(refresh);
+    
+    let next = document.createElement('button');
+    next.className = 'clickable';
+    next.addEventListener('click', nextRecipes);
+    next.innerHTML = 'Next Page ->';
+    element.appendChild(next);
 }
-*/
+
 //TODO:
 // - enable all items, but that's kinda pointless
 // - make better algorithm for finding recipes

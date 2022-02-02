@@ -1,4 +1,5 @@
 // Here are functions that don't need external variables
+import { item_id_to_name } from "./items.js";
 
 /**
  * Generates random string
@@ -87,4 +88,38 @@ export function insertInfoAfterElement(msg, element) {
     let info = document.createElement('h3');
     info.innerHTML = msg;
     element.parentNode.insertBefore(info, element.nextSibling);
+}
+
+/**
+ * Create object with recipes for each item
+ * @param {Object} allCrafts all found crafts
+ * @param {Number} maxRecipes max number of recipes per item
+ */
+export function createCrafsToSend(allCrafts, maxRecipes) {
+    let craftsToSend = {};
+    for(let i=1; i<=Object.keys(allCrafts).length; i++) {
+        if(!allCrafts[i]) {
+            continue;
+        }
+        
+        let usedIndexes = [];
+        let maxJ = allCrafts[i].length < maxRecipes ? allCrafts[i].length : maxRecipes;
+        for(let j=1; j<=maxJ; j++) {
+            let rand = Math.round(Math.random() * allCrafts[i].length);
+            if(!allCrafts[i][rand]) {
+                continue;
+            }
+            if(usedIndexes.includes(rand)) {
+                j--;
+            } else {
+                if(!craftsToSend[i]) {
+                    craftsToSend[i] = [];
+                }
+                craftsToSend[i].push(allCrafts[i][rand]);
+                usedIndexes.push(rand);
+            }
+        }
+    }
+
+    return craftsToSend;
 }

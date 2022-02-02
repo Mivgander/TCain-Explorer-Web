@@ -1,5 +1,5 @@
 import { generate_random_string, showModalError, showModalSuccess } from './functions.js';
-import { CombinationRepetition } from './newSearching.js';
+import { CombinationRepetition } from './CombinationRepetition.js';
 import { str2seed } from './str2seed.js';
 
 export class App
@@ -52,8 +52,8 @@ export class App
             this.#hardcodeCrafts();
             this.#deleteNotExistingRecipes();
             this.#setPossibleOptions();
-            this.newSearching();
-            //this.startWorker();
+            this.#generateAllRecipes();
+            this.startWorker();
         });
     }
 
@@ -103,30 +103,6 @@ export class App
         }
     }
 
-    startWorker()
-    {
-        let started = false;
-        this.worker.onmessage = event => {
-            if (this.found_recipes >= 4999 && !started && this.button) {
-                $('#send').show();
-                started = true;
-            }
-            this.alltries += 1;
-
-            if(event.data[0] == 'found') {
-                this.crafts[event.data[1]].push(event.data[2])
-                this.all_recipes.push(event.data[2])
-                this.found_recipes += 1
-            }
-            this.#updateCounter();
-            if(this.worker_running == true) {
-                this.worker.postMessage([4000, true, this.seed, this.crafts])
-            }
-        }
-        this.worker.postMessage([4000, true, this.seed, this.crafts])
-        this.worker_running = true;
-    }
-
     pauseWorker() {
         this.worker_running = false;
     }
@@ -153,15 +129,18 @@ export class App
         this.stats.innerHTML = "Checked " + this.alltries + " recipes<br>Found " + this.found_recipes + " correct recipes";
     }
 
-    newSearching() {
-        let started = false;
+    #generateAllRecipes() {
         this.all_recipes = CombinationRepetition(this.possible_options, this.possible_options.length, 8);
+    }
+
+    startWorker() {
+        let started = false;
         this.worker.onmessage = event => {
             this.alltries += 1;
             if(!this.crafts[event.data[0]].includes(event.data[1]) && this.crafts[event.data[0]].length < 30) {
                 this.crafts[event.data[0]].push(event.data[1]);
                 this.found_recipes++;
-                if(this.found_recipes >= 5000 && !started) {
+                if(this.found_recipes >= 5000 && !started && this.button) {
                     $('#send').show();
                     started = true;
                 }
@@ -170,12 +149,6 @@ export class App
             this.current_recipe++;
             if(this.current_recipe < this.all_recipes.length && this.worker_running == true) {
                 this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
-            }
-            else if(this.current_recipe == this.all_recipes.length) {
-                console.log('All found!');
-            }
-            else {
-                console.log('STOP!');
             }
         }
         this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
