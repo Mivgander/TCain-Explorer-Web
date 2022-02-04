@@ -1,19 +1,17 @@
 // okay there ends some nerd stuff and now there's my code (and my), at least at some point
 import { App } from './mainClass.js';
 import { item_id_to_name } from './items.js';
-import { showModalError, showModalSuccess, swap, removeEveryNotFirstChildOfElement, insertInfoAfterElement } from './functions.js';
+import { showModalError, showModalSuccess, removeEveryNotFirstChildOfElement, insertInfoAfterElement, createCrafsToSend } from './functions.js';
 
 // Load some stuff and start searching for recipes
 var app = new App();
 
 // When page is loaded show all items
-window.onload = flush_ui(true);
+window.onload = generateAllItems;
 
 // Adding some events to things
-$("#search").on("keyup", function() {
-    flush_ui();
-});
-$("#send").on('click', send).hide();
+$("#search").on("keyup", flush_ui);
+$("#sendButton").on('click', send).hide();
 $("#pause").on('click', pauseWorker);
 $('#resume').on('click', resumeWorker).hide();
 
@@ -36,62 +34,70 @@ function resumeWorker() {
 }
 
 /**
- * Outputs items that have ID or name that includes value in searchbar
- * 
- * @param {Boolean} showAll if true, shows all items regardles of what is in searchbar
+ * Generates all items on page
  */
-function flush_ui(showAll = false){
-    let divbox = document.getElementById("output")
-    let output = ""
+function generateAllItems() {
+    let divbox = document.getElementById('output');
+
+    Object.keys(item_id_to_name).forEach(function(key) {
+        let itemDiv = document.createElement('div');
+        itemDiv.id = key;
+        itemDiv.className = 'item';
+        
+        let header = document.createElement('h1');
+        header.setAttribute('data-recipeIndex', 0);
+    
+        let name = document.createElement('span');
+        name.textContent = key.toString()+'. '+item_id_to_name[key]
+    
+        let showButton = document.createElement('button');
+        showButton.className = 'clickable';
+        showButton.textContent = '(Show recipes)'
+        showButton.addEventListener('click', showRecipes);
+    
+        header.appendChild(name);
+        header.appendChild(showButton);
+        itemDiv.appendChild(header);
+    
+        divbox.appendChild(itemDiv);
+    });
+}
+
+/**
+ * Filters items on page by value in searchbar
+ */
+function flush_ui(){
 	let srchbar = document.getElementById('search').value;
-    if(showAll) {
-        srchbar = '';
-    }
-    let swapped = swap(item_id_to_name);
-    let foundItems = [];
-    Object.keys(swapped).forEach(function(item) {
-        if (item.toLocaleLowerCase().includes(srchbar.toLocaleLowerCase()) || swapped[item].toString().toLocaleLowerCase().includes(srchbar.toLocaleLowerCase())) {
-            let itemId = swapped[item];
-            let itemObj = {
-                itemName: item,
-                itemId: itemId
-            }
-            foundItems.push(itemObj);
+    Object.keys(item_id_to_name).forEach(function(key) {
+        if (item_id_to_name[key].toLocaleLowerCase().includes(srchbar.toLocaleLowerCase()) || key.toString().toLocaleLowerCase().includes(srchbar.toLocaleLowerCase())) {
+            document.getElementById(key).style.display = 'block';
+        } else {
+            document.getElementById(key).style.display = 'none';
         }
     });
-    
-    Object.keys(foundItems).forEach(function(key) {
-        output +=
-        '<div class="item">' +
-            '<h1>'+foundItems[key].itemId+'. '+foundItems[key].itemName+' <span id="'+foundItems[key].itemId+'" class="clickable">(Show Recipes)</span></h1>' +
-        '</div>';
-    })
-
-    divbox.innerHTML = output
-
-    Object.keys(foundItems).forEach(function(key) {
-        document.getElementById(foundItems[key].itemId.toString()).addEventListener('click', getRecipes);
-    })
 }
 
 /**
  * Sends found recipes to the database
  */
 function send() {
+    let craftsToSend = createCrafsToSend(app.crafts, 10);
+
     fetch('https://tcain.heyn.live/db', {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({"seed": app.seed, "auth_id": app.auth_id, "arr": JSON.stringify(app.crafts)})
+        body: JSON.stringify({"seed": app.seed, "auth_id": app.auth_id, "arr": JSON.stringify(craftsToSend)})
     })
     .then(function() {
         showModalSuccess("Recipes successfully send to server");
         let y = document.getElementById("send")
-        y.innerHTML = "<button disabled=\"true\">Send recipes to server</button>"
+        y.innerHTML = '<button disabled="true">Send recipes to server</button>'
     })
     .catch(reason => {
-        showModalError(reason);
+        showModalError('Sending the data has failed');
+        console.log(reason);
     });
 }
 
@@ -99,79 +105,107 @@ function send() {
  * Outputs all found recipies by id in event target
  * 
  * @param {PointerEvent} event event handler
+ * @param {String} refreshMode Avaliable values: 'next', 'previous' or leave empty to refresh
  */
-function getRecipes(event) {
-    event.target.innerHTML = '(Refresh)';
+function getRecipes(event, refreshMode = '') {
     removeEveryNotFirstChildOfElement(event.path[2]);
 
     let header = event.path[1];
-    let itemId = event.target.id;
+    let itemId = event.path[2].id;
+    let oldRecipeIndex = parseInt(header.getAttribute('data-recipeIndex'));
+    let numberOfItemsPerPage = 10;
+
     if(app.unexisting.includes(parseInt(itemId))) {
         insertInfoAfterElement('This item has no recipes', header);
     } else if (app.crafts[itemId].length == 0) {
         insertInfoAfterElement('No recipes found', header);
     } else {
-        for (let _=0; _<app.crafts[itemId].length; _++) {
-            let div = document.createElement('div');
-            div.classList.add('recipe');
-            for (let i=0; i<8; i++) {
-                let img = document.createElement('img');
-                img.classList.add("bofsym_"+app.crafts[itemId][_][i]);
-                div.appendChild(img);
+        let newRecipeIndex = oldRecipeIndex;
+        if(refreshMode == 'previous') {
+            newRecipeIndex = oldRecipeIndex - numberOfItemsPerPage;
+        } else if(refreshMode == 'next') {
+            newRecipeIndex = oldRecipeIndex + numberOfItemsPerPage;
+        }
+        header.setAttribute('data-recipeIndex', newRecipeIndex);
+
+        for (let _=newRecipeIndex+numberOfItemsPerPage-1; _>=newRecipeIndex; _--) {
+            if(app.crafts[itemId][_]) {
+                let div = document.createElement('div');
+                div.classList.add('recipe');
+                for (let i=0; i<8; i++) {
+                    let img = document.createElement('img');
+                    img.classList.add("bofsym_"+app.crafts[itemId][_][i]);
+                    div.appendChild(img);
+                }
+                header.parentNode.insertBefore(div, header.nextSibling);
             }
-            header.parentNode.insertBefore(div, header.nextSibling);
         }
     }
 }
 
-/*
-function run(tries_limit, no_popup=false) {
-    let tries = 0;
-    let currentPool = []
-    while (true) {
-        currentPool = combs1.next().value
-        if (added.includes(currentPool)) {
-            continue
-        }
-        //console.log(currentPool);
-        let id = get_result(currentPool, str2seed(seed))
-        tries += 1
-        alltries += 1 
-        if (unexisting.includes(id) || crafts[id].length >= 4) {
-            added.push(currentPool)
-            continue
-        }
-        if (!crafts[id].includes(currentPool)) {
-            if (crafts[id].length >= 4) {
-                added.push(currentPool)
-                continue
-            }
-            if (tries_limit != default_tries) {additional +=1}
-            found_recipes += 1
-            crafts[id].push(currentPool)
-        }
-        added.push(currentPool)
-        if (tries >= tries_limit || done(crafts, 4)) {
-            if (done(crafts, 4)) {
-                window.alert("Done!")
-            }
-            else if (tries_limit != default_tries) {
-                //if (no_popup){window.alert("Found " + additional + " additional combinations")}
-                additional = 0;
-            }
-            else if (tries >= tries_limit) {
-                let x = document.getElementById("morebutton")
-                x.innerHTML = "<button onclick=\"run(10000)\">Check more recipes</button>"
-            }
-            //console.log(crafts)
-            setInterval(constant_run, 5);
-            first_time = true;
-            flush_ui(false)
-            break
-        }
-    }
+function hideRecipes(event) {
+    removeEveryNotFirstChildOfElement(event.path[2]);
+    removeEveryNotFirstChildOfElement(event.path[1]);
+
+    let header = event.path[1];
+    let show = document.createElement('button');
+    show.className = 'clickable';
+    show.addEventListener('click', showRecipes);
+    show.textContent = '(Show Recipes)';
+    header.appendChild(show);
 }
-*/
+
+function showRecipes(event) {
+    let header = event.path[1];
+    removeEveryNotFirstChildOfElement(header);
+    addNavigateButtons(header);
+    getRecipes(event);
+}
+
+function refreshRecipes(event) {
+    getRecipes(event);
+}
+
+function nextRecipes(event) {
+    getRecipes(event, 'next');
+}
+
+function previousRecipes(event) {
+    getRecipes(event, 'previous');
+}
+
+/**
+ * adds navigate buttons to element
+ * @param {HTMLElement} element parent element
+ */
+function addNavigateButtons(element) {
+    let close = document.createElement('button');
+    close.className = 'clickable';
+    close.addEventListener('click', hideRecipes);
+    close.innerHTML = '(Close)';
+    element.appendChild(close);
+
+    element.appendChild(document.createElement('br'));
+
+    let previous = document.createElement('button');
+    previous.className = 'clickable';
+    previous.addEventListener('click', previousRecipes);
+    previous.innerHTML = '<- Previous Page';
+    element.appendChild(previous);
+
+    let refresh = document.createElement('button');
+    refresh.className = 'clickable';
+    refresh.addEventListener('click', refreshRecipes);
+    refresh.innerHTML = '(Refresh)';
+    element.appendChild(refresh);
+    
+    let next = document.createElement('button');
+    next.className = 'clickable';
+    next.addEventListener('click', nextRecipes);
+    next.innerHTML = 'Next Page ->';
+    element.appendChild(next);
+}
+
 //TODO:
 // - enable all items, but that's kinda pointless
 // - make better algorithm for finding recipes

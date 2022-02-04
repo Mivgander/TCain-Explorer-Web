@@ -2,9 +2,7 @@
 
 /**
  * Generates random string
- * 
  * @param {Number} len length of string
- * @returns {String}
  */
 export function generate_random_string(len) {
     var text = "";
@@ -17,7 +15,6 @@ export function generate_random_string(len) {
 
 /**
  * Shows error modal with custom message that disappears after 3s
- * 
  * @param {String} msg custom message
  */
 export function showModalError(msg) {
@@ -30,7 +27,6 @@ export function showModalError(msg) {
 
 /**
  * Shows success modal with custom message that disappears after 3s
- * 
  * @param {String} msg custom message
  */
 export function showModalSuccess(msg) {
@@ -56,7 +52,6 @@ export function hideModal() {
 
 /**
  * Swaps keys with values in array
- * 
  * @param {Object} json 
  * @returns {Object}
  */
@@ -79,7 +74,7 @@ export function removeEveryNotFirstChildOfElement(element) {
 }
 
 /**
- * Inserts <h3> with info message after HTML element
+ * Inserts \<h3\> with info message after HTML element
  * @param {String} msg info message
  * @param {HTMLElement} element HTML element
  */
@@ -87,4 +82,38 @@ export function insertInfoAfterElement(msg, element) {
     let info = document.createElement('h3');
     info.innerHTML = msg;
     element.parentNode.insertBefore(info, element.nextSibling);
+}
+
+/**
+ * Returns object with recipes for each item
+ * @param {Object} allCrafts all found crafts
+ * @param {Number} maxRecipes max number of recipes per item
+ */
+export function createCrafsToSend(allCrafts, maxRecipes) {
+    let craftsToSend = {};
+    for(let i=1; i<=Object.keys(allCrafts).length; i++) {
+        if(!allCrafts[i]) {
+            continue;
+        }
+        
+        let usedIndexes = [];
+        let maxJ = allCrafts[i].length < maxRecipes ? allCrafts[i].length : maxRecipes;
+        for(let j=1; j<=maxJ; j++) {
+            let rand = Math.round(Math.random() * allCrafts[i].length);
+            if(!allCrafts[i][rand]) {
+                continue;
+            }
+            if(usedIndexes.includes(rand)) {
+                j--;
+            } else {
+                if(!craftsToSend[i]) {
+                    craftsToSend[i] = [];
+                }
+                craftsToSend[i].push(allCrafts[i][rand]);
+                usedIndexes.push(rand);
+            }
+        }
+    }
+
+    return craftsToSend;
 }

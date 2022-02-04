@@ -2139,12 +2139,10 @@ for (const [key,value] of Object.entries(chances)) {
     }
 }
 let found = 0
-let max = 0
 let tries = 0
 let currentPoolx = getRandomPool(8)
 let seed = '';
 let crafts;
-let id1;
 let unexisting = [666, 662, 648, 630, 620, 613, 587, 18, 130, 207, 119, 474, 550, 158, 668, 633, 293, 429, 715, 135, 238, 239, 626, 627, 132, 552, 714, 673, 9, 50, 328, 327, 90, 484, 181]
 
 function x() {
@@ -2162,32 +2160,8 @@ function x() {
 }
 
 onmessage = function(e) {
-    if(e.data[0] == 'pause') {
-        clearInterval(id1);
-        return;
-    }
-    
-    max += e.data[0]
-    seed = e.data[2]
-    crafts = e.data[3]
-    id1 = setInterval(x, 0.5)
-
-    /*if (tries >= tries_limit || done(crafts, 4)) {
-        if (done(crafts, 4)) {
-            window.alert("Done!")
-        }
-        else if (tries_limit != default_tries) {
-            //if (no_popup){window.alert("Found " + additional + " additional combinations")}
-            //additional = 0;
-        }
-        else if (tries >= tries_limit) {
-            //let x = document.getElementById("morebutton")
-            //x.innerHTML = "<button onclick=\"run(10000)\">Check more recipes</button>"
-        }
-        console.log(crafts)
-        setInterval(constant_run, 5);
-        first_time = true;
-        flush_ui(false)
-        break
-    }*/
+    // seed = e.data[2]
+    // crafts = e.data[3]
+    // x();
+    postMessage([get_result(e.data[0], e.data[1]), e.data[0]]);
 }

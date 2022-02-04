@@ -3,9 +3,6 @@ body {
     background-color: #404040;
     color: #eee;
 }
-a {
-    color:rgb(44, 99, 202);
-}
 #error {
     padding-top: 5px;
     font-size: 18px;
@@ -40,6 +37,13 @@ a {
 .clickable {
     color: rgb(44, 99, 202);
     cursor: pointer;
+}
+button[class="clickable"] {
+    background-color: rgba(0, 0, 0, 0);
+    border: none;
+    font-size: inherit;
+    font-weight: inherit;
+    font-family: Lato, sans-serif;
 }
 .bofsym_0{
     width: 128px;

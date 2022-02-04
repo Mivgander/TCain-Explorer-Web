@@ -1,4 +1,6 @@
 import { generate_random_string, showModalError, showModalSuccess } from './functions.js';
+import { CombinationRepetition } from './CombinationRepetition.js';
+import { str2seed } from './str2seed.js';
 
 export class App
 {
@@ -7,11 +9,14 @@ export class App
     found_recipes = 0;
     alltries = 0;
     all_recipes = [];
-    worker_running = false;
+    worker_running = true;
+    current_recipe = 0;
+    possible_options = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23];
 
     constructor()
     {
         this.seed = (this.findGetParameter("seed").substring(0, 4) + " " + this.findGetParameter("seed").substring(4, 8)).toUpperCase();
+        this.seed = str2seed(this.seed);
         this.iscoop = this.findGetParameter("coop") ? 1 : 0;
         this.auth_id = generate_random_string(24);
         this.worker = new Worker("static/run_worker.js");
@@ -41,12 +46,13 @@ export class App
             }
             showModalSuccess("Imported from web!" + "<br>" + "Found " + this.found_recipes + " recipes");
         }).catch(reason => {
-            console.log(reason);
             showModalError('Something went wrong and we couldn\'t download recipes from the server');
+            console.log(reason);
         }).finally(() => {
             this.#hardcodeCrafts();
             this.#deleteNotExistingRecipes();
             this.#setPossibleOptions();
+            this.#generateAllRecipes();
             this.startWorker();
         });
     }
@@ -91,43 +97,19 @@ export class App
 
     #setPossibleOptions()
     {
-        this.possible_options = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23] // removed 24, 25, giga items: 17, 20
+        //this.possible_options = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23] // removed 24, 25, giga items: 17, 20
         if (this.iscoop == 1) {
             this.possible_options.push(29)
         }
     }
 
-    startWorker()
-    {
-        let started = false;
-        this.worker.onmessage = event => {
-            if (this.found_recipes >= 4999 && !started && this.button) {
-                $('#send').show();
-                started = true;
-            }
-            this.alltries += 1;
-
-            if(event.data[0] == 'found') {
-                this.crafts[event.data[1]].push(event.data[2])
-                this.all_recipes.push(event.data[2])
-                this.found_recipes += 1
-            }
-            this.#updateCounter();
-        }
-        this.worker.postMessage([4000, true, this.seed, this.crafts])
-        this.worker_running = true;
-    }
-
     pauseWorker() {
-        this.worker.postMessage(['pause']);
         this.worker_running = false;
     }
 
     resumeWorker() {
-        if(this.worker_running == false) {
-            this.worker.postMessage([4000, true, this.seed, this.crafts]);
-            this.worker_running = true;
-        }
+        this.worker_running = true;
+        this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
     }
 
     // function from https://stackoverflow.com/questions/5448545/how-to-retrieve-get-parameters-from-javascript
@@ -145,5 +127,30 @@ export class App
     #updateCounter()
     {
         this.stats.innerHTML = "Checked " + this.alltries + " recipes<br>Found " + this.found_recipes + " correct recipes";
+    }
+
+    #generateAllRecipes() {
+        this.all_recipes = CombinationRepetition(this.possible_options, this.possible_options.length, 8);
+    }
+
+    startWorker() {
+        let started = false;
+        this.worker.onmessage = event => {
+            this.alltries += 1;
+            if(!this.crafts[event.data[0]].includes(event.data[1])) {
+                this.crafts[event.data[0]].push(event.data[1]);
+                this.found_recipes++;
+                if(this.found_recipes >= 5000 && !started && this.button) {
+                    $('#sendButton').show();
+                    started = true;
+                }
+            }
+            this.#updateCounter();
+            this.current_recipe++;
+            if(this.current_recipe < this.all_recipes.length && this.worker_running == true) {
+                this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
+            }
+        }
+        this.worker.postMessage([this.all_recipes[this.current_recipe], this.seed]);
     }
 }
