@@ -1,7 +1,7 @@
 // okay there ends some nerd stuff and now there's my code (and my), at least at some point
 import { App } from './mainClass.js';
 import { item_id_to_name } from './items.js';
-import { showModalError, showModalSuccess, swap, removeEveryNotFirstChildOfElement, insertInfoAfterElement, createCrafsToSend } from './functions.js';
+import { showModalError, showModalSuccess, removeEveryNotFirstChildOfElement, insertInfoAfterElement, createCrafsToSend } from './functions.js';
 
 // Load some stuff and start searching for recipes
 var app = new App();
@@ -11,7 +11,7 @@ window.onload = generateAllItems;
 
 // Adding some events to things
 $("#search").on("keyup", flush_ui);
-$("#send").on('click', send).hide();
+$("#sendButton").on('click', send).hide();
 $("#pause").on('click', pauseWorker);
 $('#resume').on('click', resumeWorker).hide();
 
@@ -93,10 +93,11 @@ function send() {
     .then(function() {
         showModalSuccess("Recipes successfully send to server");
         let y = document.getElementById("send")
-        y.innerHTML = "<button disabled=\"true\">Send recipes to server</button>"
+        y.innerHTML = '<button disabled="true">Send recipes to server</button>'
     })
     .catch(reason => {
-        showModalError(reason);
+        showModalError('Sending the data has failed');
+        console.log(reason);
     });
 }
 
@@ -104,20 +105,15 @@ function send() {
  * Outputs all found recipies by id in event target
  * 
  * @param {PointerEvent} event event handler
- * @param {String} refreshMode Avaliable values: 'show', 'refresh', 'next', 'previous'
+ * @param {String} refreshMode Avaliable values: 'next', 'previous' or leave empty to refresh
  */
-function getRecipes(event, refreshMode) {
+function getRecipes(event, refreshMode = '') {
     removeEveryNotFirstChildOfElement(event.path[2]);
 
     let header = event.path[1];
     let itemId = event.path[2].id;
     let oldRecipeIndex = parseInt(header.getAttribute('data-recipeIndex'));
     let numberOfItemsPerPage = 10;
-
-    if(refreshMode == 'show') {
-        removeEveryNotFirstChildOfElement(header);
-        addNavigateButtons(header);
-    }
 
     if(app.unexisting.includes(parseInt(itemId))) {
         insertInfoAfterElement('This item has no recipes', header);
@@ -160,11 +156,14 @@ function hideRecipes(event) {
 }
 
 function showRecipes(event) {
-    getRecipes(event, 'show');
+    let header = event.path[1];
+    removeEveryNotFirstChildOfElement(header);
+    addNavigateButtons(header);
+    getRecipes(event);
 }
 
 function refreshRecipes(event) {
-    getRecipes(event, 'refresh');
+    getRecipes(event);
 }
 
 function nextRecipes(event) {

@@ -46,8 +46,8 @@ export class App
             }
             showModalSuccess("Imported from web!" + "<br>" + "Found " + this.found_recipes + " recipes");
         }).catch(reason => {
-            console.log(reason);
             showModalError('Something went wrong and we couldn\'t download recipes from the server');
+            console.log(reason);
         }).finally(() => {
             this.#hardcodeCrafts();
             this.#deleteNotExistingRecipes();
@@ -141,7 +141,7 @@ export class App
                 this.crafts[event.data[0]].push(event.data[1]);
                 this.found_recipes++;
                 if(this.found_recipes >= 5000 && !started && this.button) {
-                    $('#send').show();
+                    $('#sendButton').show();
                     started = true;
                 }
             }

@@ -74,7 +74,7 @@ export function removeEveryNotFirstChildOfElement(element) {
 }
 
 /**
- * Inserts <h3> with info message after HTML element
+ * Inserts \<h3\> with info message after HTML element
  * @param {String} msg info message
  * @param {HTMLElement} element HTML element
  */
